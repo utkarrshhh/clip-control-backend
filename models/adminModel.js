@@ -22,11 +22,13 @@ const adminSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  editor: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Editor",
-    // required: true,
-  },
+  editors: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Editor",
+    },
+  ],
+  verified: { type: Boolean, default: false },
 });
 
 module.exports = mongoose.model("Admin", adminSchema);

@@ -5,6 +5,7 @@ const editorShema = new mongoose.Schema({
   password: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   admin: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", required: true },
+  verified: { type: Boolean, default: false },
 });
 
 module.exports = mongoose.model("Editor", editorShema);
