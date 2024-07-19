@@ -71,7 +71,7 @@ exports.editorSignup = async (req, res) => {
 
 exports.adminLogin = async (req, res) => {
   //admin login code
-  const { email, password } = req.body;
+  const { email, password, role } = req.body;
   if (!email || !password) {
     res.json({ msg: "fill all entries", success: false });
   }
@@ -104,7 +104,7 @@ exports.adminLogin = async (req, res) => {
 
 exports.editorLogin = async (req, res) => {
   //editor login code
-  const { email, password } = req.body;
+  const { email, password, role } = req.body;
   if (!email || !password) {
     res.json({ msg: "fill all entries", success: false });
   }
