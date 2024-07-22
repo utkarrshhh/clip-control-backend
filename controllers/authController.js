@@ -12,26 +12,32 @@ exports.adminSignup = async (req, res) => {
   if (user) {
     res.json({ msg: "user already exists", success: false });
   } else {
-    const token = uuidv4();
-    const salt = await bcrypt.genSalt(10);
-    const newPassword = await bcrypt.hash(password, salt);
-    user = new admin({
-      name,
-      email,
-      password: newPassword,
-      specialToken: token,
-    });
-    await user.save();
-    console.log("saved successfully");
-    const tokenVerify = jwt.sign(
-      { id: user._id, email: user.email },
-      process.env.SECRET_KEY,
-      { expiresIn: "1h" }
-    );
-    console.log(tokenVerify);
-    sendVerificationEmail(email, tokenVerify);
+    try {
+      const token = uuidv4();
+      const salt = await bcrypt.genSalt(10);
+      const newPassword = await bcrypt.hash(password, salt);
 
-    res.json({ msg: "user created successfully", success: true });
+      user = new admin({
+        name,
+        email,
+        password: newPassword,
+        specialToken: token,
+      });
+      await user.save();
+      console.log("saved successfully");
+      const tokenVerify = jwt.sign(
+        { id: user._id, email: user.email },
+        process.env.SECRET_KEY,
+        { expiresIn: "1h" }
+      );
+      console.log(tokenVerify);
+      sendVerificationEmail(email, tokenVerify);
+
+      res.json({ msg: "user created successfully", success: true });
+    } catch (e) {
+      console.log(e);
+      res.status(500).json({ msg: "server error", success: false });
+    }
   }
 };
 
@@ -145,7 +151,6 @@ exports.confirmEmail = async (req, res) => {
       await user.save();
       console.log("Admin user verified successfully.");
       return res.send("go to login page again to log in ");
-      // return res.redirect("/adminLogin");
     }
 
     user = await editor.findById(decoded.id);
