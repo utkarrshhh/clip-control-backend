@@ -76,35 +76,41 @@ exports.editorSignup = async (req, res) => {
 };
 
 exports.adminLogin = async (req, res) => {
-  //admin login code
-  const { email, password, role } = req.body;
-  if (!email || !password) {
-    res.json({ msg: "fill all entries", success: false });
-  }
-  const user = await adminModel.findOne({ email });
-  if (!user) {
-    res.json({ msg: "user not found", success: false });
-  } else {
-    // const isMatch = await bcrypt.compare(user.password, password);
-    let token = "";
-    const isMatch = user.password === password;
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.json({ msg: "Fill all entries", success: false });
+    }
+
+    const user = await adminModel.findOne({ email });
+
+    if (!user) {
+      return res.json({ msg: "User not found", success: false });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
     if (isMatch) {
       const payload = {
         name: user.name,
         email: user.email,
       };
-      token = jwt.sign(payload, process.env.SECRET_KEY, {
+      const token = jwt.sign(payload, process.env.SECRET_KEY, {
         expiresIn: "1h",
       });
       console.log(token);
-      res.json({
-        msg: "logged in very successfully",
+      return res.json({
+        msg: "Logged in successfully",
         success: true,
         token: token,
       });
     } else {
-      res.json({ msg: "wrong password", success: false });
+      return res.json({ msg: "Wrong password", success: false });
     }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: "Server error", success: false });
   }
 };
 
