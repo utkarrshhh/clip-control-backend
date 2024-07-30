@@ -174,3 +174,36 @@ exports.confirmEmail = async (req, res) => {
     return res.json({ msg: "Error during verification", success: false });
   }
 };
+
+exports.uploadMedia = async (req, res) => {
+  try {
+    // Check if a file is included in the request
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded." });
+    }
+
+    // Access the file's buffer, originalname, mimetype, etc.
+    const fileBuffer = req.file.buffer;
+    const originalName = req.file.originalname;
+    const mimeType = req.file.mimetype;
+    const fileSize = req.file.size;
+
+    // Example: Process the file or upload it to a cloud storage service
+    // For demonstration purposes, let's assume you are logging the file details
+    console.log(
+      `Received file: ${originalName}, type: ${mimeType}, size: ${fileSize}`
+    );
+
+    // Respond to the client
+    res.status(200).json({
+      message: "File uploaded successfully",
+      filename: originalName,
+      mimetype: mimeType,
+      size: fileSize,
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error in uploading file:", error);
+    res.status(500).json({ message: "Internal server error", success: false });
+  }
+};
