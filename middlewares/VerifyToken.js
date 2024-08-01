@@ -1,23 +1,32 @@
 const jwt = require("jsonwebtoken");
+const dotenv = require("dotenv");
+
+dotenv.config();
 
 const verifyToken = (req, res, next) => {
-  const token = req.headers.authorization || req.body.token || req.query.token;
+  // Get token from headers, body, or query
+  const token =
+    req.headers.authorization?.split(" ")[1] ||
+    req.body.token ||
+    req.query.token;
+
   if (!token) {
     return res
       .status(401)
       .json({ message: "Login to continue", success: false });
   }
+
   try {
+    // Verify token
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
     req.user = decoded;
     next();
   } catch (error) {
-    res
-      .status(400)
-      .json({
-        message: "some error occured, try again after some time",
-        success: false,
-      });
+    console.error("Token verification error:", error);
+    res.status(403).json({
+      message: "Invalid or expired token, please login again",
+      success: false,
+    });
   }
 };
 
