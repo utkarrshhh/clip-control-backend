@@ -29,6 +29,7 @@ const adminSchema = new mongoose.Schema({
     },
   ],
   verified: { type: Boolean, default: false },
+  imageUpload: [{ type: mongoose.Schema.Types.ObjectId, ref: "Image" }],
 });
 
 module.exports = mongoose.model("Admin", adminSchema);

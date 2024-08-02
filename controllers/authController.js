@@ -6,6 +6,7 @@ const jwt = require("jsonwebtoken");
 
 const { v4: uuidv4 } = require("uuid");
 const { sendVerificationEmail } = require("./nodeMailer");
+const adminImageModel = require("../models/adminImageModel");
 exports.adminSignup = async (req, res) => {
   const { name, email, password } = req.body;
   let user = await admin.findOne({ email });
@@ -176,32 +177,53 @@ exports.confirmEmail = async (req, res) => {
 };
 
 exports.uploadMedia = async (req, res) => {
+  const { title, tags, category, description } = req.body;
+  let userRef = req.user;
   try {
-    // Check if a file is included in the request
     if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded." });
+      return res
+        .status(400)
+        .json({ message: "No file uploaded.", success: false });
     }
 
-    // Access the file's buffer, originalname, mimetype, etc.
-    const fileBuffer = req.file.buffer;
-    const originalName = req.file.originalname;
-    const mimeType = req.file.mimetype;
-    const fileSize = req.file.size;
-
-    // Example: Process the file or upload it to a cloud storage service
-    // For demonstration purposes, let's assume you are logging the file details
+    const {
+      buffer: fileBuffer,
+      originalname: originalName,
+      mimetype: mimeType,
+      size: fileSize,
+    } = req.file;
     console.log(
       `Received file: ${originalName}, type: ${mimeType}, size: ${fileSize}`
     );
 
-    // Respond to the client
-    res.status(200).json({
-      message: "File uploaded successfully",
-      filename: originalName,
-      mimetype: mimeType,
-      size: fileSize,
-      success: true,
+    const base64Image = fileBuffer.toString("base64");
+    const userRef2 = await adminModel.findOne({ email: userRef.email });
+    if (!userRef2) {
+      return res.json({
+        msg: "User not found, Signup to continue",
+        success: false,
+      });
+    }
+
+    const newImage = new adminImageModel({
+      title,
+      tags,
+      description,
+      category,
+      image: base64Image,
+      user: userRef2._id,
     });
+    await newImage.save();
+
+    await adminModel.findOneAndUpdate(
+      { email: userRef.email },
+      {
+        $push: { imageUpload: newImage._id },
+      },
+      { new: true } // Optional: returns the updated document
+    );
+    console.log(userRef);
+    res.json({ message: "File uploaded successfully.", success: true });
   } catch (error) {
     console.error("Error in uploading file:", error);
     res.status(500).json({ message: "Internal server error", success: false });
