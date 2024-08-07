@@ -7,6 +7,8 @@ const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 const { sendVerificationEmail } = require("./nodeMailer");
 const adminImageModel = require("../models/adminImageModel");
+const editorModel = require("../models/editorModel");
+const editorImageModel = require("../models/editorImageModel");
 exports.adminSignup = async (req, res) => {
   const { name, email, password } = req.body;
   let user = await admin.findOne({ email });
@@ -70,7 +72,11 @@ exports.editorSignup = async (req, res) => {
     } else {
       res.json({ msg: "no such admin", success: false });
     }
-    res.json({ msg: "successfully saved the editor", success: true });
+    res.json({
+      msg: "successfully saved the editor",
+      success: true,
+      role: "editor",
+    });
   } else {
     res.json({ msg: "no token provided", success: false });
   }
@@ -105,6 +111,7 @@ exports.adminLogin = async (req, res) => {
         msg: "Logged in successfully",
         success: true,
         token: token,
+        role: "admin",
       });
     } else {
       return res.json({ msg: "Wrong password", success: false });
@@ -117,16 +124,19 @@ exports.adminLogin = async (req, res) => {
 
 exports.editorLogin = async (req, res) => {
   //editor login code
-  const { email, password, role } = req.body;
+  const { email, password } = req.body;
   if (!email || !password) {
     res.json({ msg: "fill all entries", success: false });
   }
-  const user = await editor.findOne({ email });
+  const user = await editorModel.findOne({ email });
   if (!user) {
+    console.log(user);
     res.json({ msg: "user not found", success: false });
   } else {
     // const isMatch = await bcrypt.compare(user.password, password);
-    const isMatch = user.password === password;
+    // const isMatch = user.password === password;
+
+    const isMatch = await bcrypt.compare(password, user.password);
     let token = "";
     if (isMatch) {
       const payload = {
@@ -137,7 +147,12 @@ exports.editorLogin = async (req, res) => {
         expiresIn: "1h",
       });
 
-      res.json({ msg: "logged in successfully", success: true, token });
+      res.json({
+        msg: "logged in successfully",
+        success: true,
+        token,
+        role: "editor",
+      });
     } else {
       res.json({ msg: "wrong password", success: false });
     }
@@ -177,7 +192,7 @@ exports.confirmEmail = async (req, res) => {
 };
 
 exports.uploadMedia = async (req, res) => {
-  const { title, tags, category, description } = req.body;
+  const { title, tags, category, description, role } = req.body;
   let userRef = req.user;
   try {
     if (!req.file) {
@@ -197,35 +212,81 @@ exports.uploadMedia = async (req, res) => {
     );
 
     const base64Image = fileBuffer.toString("base64");
-    const userRef2 = await adminModel.findOne({ email: userRef.email });
-    if (!userRef2) {
-      return res.json({
-        msg: "User not found, Signup to continue",
+    let userRef2 = "";
+    try {
+      if (role === "admin") {
+        userRef2 = await adminModel.findOne({ email: userRef.email });
+        if (!userRef2) {
+          return res.json({
+            msg: "User not found, Signup to continue",
+            success: false,
+          });
+        }
+        const newImage = new adminImageModel({
+          title,
+          tags,
+          description,
+          category,
+          image: base64Image,
+          user: userRef2._id,
+        });
+        await newImage.save();
+
+        await adminModel.findOneAndUpdate(
+          { email: userRef.email },
+          {
+            $push: { imageUpload: newImage._id },
+          },
+          { new: true } // Optional: returns the updated document
+        );
+      } else {
+        userRef2 = await editorModel.findOne({ email: userRef.email });
+        if (!userRef2) {
+          return res.json({
+            msg: "User not found, Signup to continue",
+            success: false,
+          });
+        }
+        const newImage = new editorImageModel({
+          title,
+          tags,
+          description,
+          category,
+          image: base64Image,
+          user: userRef2._id,
+        });
+        await newImage.save();
+        await editorModel.findOneAndUpdate(
+          { email: userRef.email },
+          {
+            $push: { imageUpload: newImage._id },
+          },
+          { new: true } // Optional: returns the updated document
+        );
+      }
+      console.log(userRef);
+      res.json({ message: "File uploaded successfully.", success: true });
+    } catch (e) {
+      console.log(e);
+      return res.status(500).json({
+        msg: "Internal server error",
         success: false,
       });
     }
-
-    const newImage = new adminImageModel({
-      title,
-      tags,
-      description,
-      category,
-      image: base64Image,
-      user: userRef2._id,
-    });
-    await newImage.save();
-
-    await adminModel.findOneAndUpdate(
-      { email: userRef.email },
-      {
-        $push: { imageUpload: newImage._id },
-      },
-      { new: true } // Optional: returns the updated document
-    );
-    console.log(userRef);
-    res.json({ message: "File uploaded successfully.", success: true });
   } catch (error) {
     console.error("Error in uploading file:", error);
+    res.status(500).json({ message: "Internal server error", success: false });
+  }
+};
+
+exports.getImages = async (req, res) => {
+  try {
+    const images = await adminImageModel.find();
+    const editorImages = await editorImageModel.find();
+    console.log(images.length + " " + editorImages.length);
+    res.json({ adminData: images, success: true, editorData: editorImages });
+  } catch (e) {
+    console.error("Error in getting images:", e);
     res.status(500).json({ message: "Internal server error", success: false });
   }
 };

@@ -6,6 +6,7 @@ const {
   editorLogin,
   confirmEmail,
   uploadMedia,
+  getImages,
 } = require("../controllers/authController");
 const { verifyToken } = require("../middlewares/VerifyToken");
 const multer = require("multer");
@@ -24,5 +25,6 @@ router.post("/adminLogin", adminLogin);
 router.post("/editorLogin", editorLogin);
 router.get("/confirm/:token", confirmEmail);
 router.post("/upload", verifyToken, upload.single("image"), uploadMedia);
+router.get("/explore", getImages);
 
 module.exports = router;
