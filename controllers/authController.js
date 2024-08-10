@@ -112,6 +112,7 @@ exports.adminLogin = async (req, res) => {
         success: true,
         token: token,
         role: "admin",
+        user,
       });
     } else {
       return res.json({ msg: "Wrong password", success: false });
@@ -152,6 +153,7 @@ exports.editorLogin = async (req, res) => {
         success: true,
         token,
         role: "editor",
+        user,
       });
     } else {
       res.json({ msg: "wrong password", success: false });
