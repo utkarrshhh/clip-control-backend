@@ -3,12 +3,16 @@ const admin = require("../models/adminModel");
 const editor = require("../models/editorModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const NodeCache = require("node-cache");
 
 const { v4: uuidv4 } = require("uuid");
 const { sendVerificationEmail } = require("./nodeMailer");
 const adminImageModel = require("../models/adminImageModel");
 const editorModel = require("../models/editorModel");
 const editorImageModel = require("../models/editorImageModel");
+
+const nodeCache = new NodeCache();
+
 exports.adminSignup = async (req, res) => {
   const { name, email, password } = req.body;
   let user = await admin.findOne({ email });
@@ -267,6 +271,7 @@ exports.uploadMedia = async (req, res) => {
         );
       }
       console.log(userRef);
+      nodeCache.del("finalResult");
       res.json({ message: "File uploaded successfully.", success: true });
     } catch (e) {
       console.log(e);
@@ -283,10 +288,21 @@ exports.uploadMedia = async (req, res) => {
 
 exports.getImages = async (req, res) => {
   try {
-    const images = await adminImageModel.find();
-    const editorImages = await editorImageModel.find();
-    console.log(images.length + " " + editorImages.length);
-    res.json({ adminData: images, success: true, editorData: editorImages });
+    let finalResult = [];
+    if (nodeCache.has("finalResult")) {
+      // Corrected to "finalResult" to match the cache key
+      finalResult = JSON.parse(nodeCache.get("finalResult"));
+    } else {
+      const images = await adminImageModel.find();
+      const editorImages = await editorImageModel.find();
+      console.log(images.length + " " + editorImages.length);
+
+      finalResult = [...images, ...editorImages];
+      // Corrected to "finalResult" to match the cache key
+      nodeCache.set("finalResult", JSON.stringify(finalResult));
+    }
+
+    res.json({ finalResult, success: true });
   } catch (e) {
     console.error("Error in getting images:", e);
     res.status(500).json({ message: "Internal server error", success: false });
