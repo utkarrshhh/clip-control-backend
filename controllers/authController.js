@@ -4,7 +4,6 @@ const editor = require("../models/editorModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const NodeCache = require("node-cache");
-
 const { v4: uuidv4 } = require("uuid");
 const { sendVerificationEmail } = require("./nodeMailer");
 const adminImageModel = require("../models/adminImageModel");
