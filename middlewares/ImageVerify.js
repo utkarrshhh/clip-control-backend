@@ -1,7 +1,7 @@
 const sharp = require("sharp");
 const resemble = require("resemblejs");
-// const ImageModel = require("../models/ImageModel"); // Assuming you have an Image model defined in models
-
+// const adminImage = require("../models/adminImage"); // Assuming you have an Image model defined in models
+const adminImage = require("../models/adminadminImage");
 // we will be sending name id and all the detaisl from the frontend for backend to send find() request to database to retrieve the image and then perform the verification process
 
 const compareImagesMiddleware = async (req, res, next) => {
@@ -11,7 +11,7 @@ const compareImagesMiddleware = async (req, res, next) => {
 
     // Fetch image from MongoDB by ID
     const { imageId } = req.body;
-    const dbImage = await ImageModel.findById(imageId);
+    const dbImage = await adminImage.findById(imageId);
     if (!dbImage) {
       return res.status(404).json({ message: "Image not found in database" });
     }
@@ -41,3 +41,7 @@ const compareImagesMiddleware = async (req, res, next) => {
 };
 
 module.exports = compareImagesMiddleware;
+
+// we are getting the percentage comparison of the two images in req.imageComparisonResult
+// in the controller we need to check if the %age is > or < than 5 to decide whether the images are same or not
+// if not same send res as not same else save the image in editorImageModel and also push the image id to the adminImageModel as well and send the image back to display it on the frontend-- case could be that image is already at the frontend so we might not need to do that we could simply take from the frontend and display in the case of success else displya an error message that images are different and please verify them before uploading

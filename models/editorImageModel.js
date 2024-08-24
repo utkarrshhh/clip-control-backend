@@ -8,6 +8,8 @@ const imageSchema = new mongoose.Schema({
   image: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
   user: { type: mongoose.Schema.Types.ObjectId, ref: "editor" },
+  visible: { type: Boolean, default: true },
+  adminImageId: [{ type: mongoose.Schema.Types.ObjectId, ref: "image" }],
 });
 
 module.exports = mongoose.model("editorImage", imageSchema);

@@ -307,3 +307,45 @@ exports.getImages = async (req, res) => {
     res.status(500).json({ message: "Internal server error", success: false });
   }
 };
+
+exports.uploadEdited = async (req, res) => {
+  if (req.imageComparisonResult > 10) {
+    res.json({
+      message: "Please verify and upload image again",
+      success: false,
+    });
+  } else {
+    const { title, description, role, imageId } = req.body;
+    const visible = false;
+    try {
+      const {
+        buffer: fileBuffer,
+        originalname: originalName,
+        mimetype: mimeType,
+        size: fileSize,
+      } = req.file;
+      console.log(
+        `Received file: ${originalName}, type: ${mimeType}, size: ${fileSize}`
+      );
+
+      const base64Image = fileBuffer.toString("base64");
+      const user = new editorImageModel({
+        title,
+        description,
+        role,
+        image: base64Image,
+        visible,
+        adminImageId: imageId,
+      });
+      await user.save();
+      await adminImageModel.findOneAndUpdate(
+        {
+          $push: { editedImage: user._id },
+        },
+        { new: true } // Optional: returns the updated document
+      );
+    } catch (e) {
+      res.json({ message: "Internal Server Error", success: false });
+    }
+  }
+};
