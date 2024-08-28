@@ -1,8 +1,6 @@
-const sharp = require("sharp");
-const resemble = require("resemblejs");
-// const adminImage = require("../models/adminImage"); // Assuming you have an Image model defined in models
-const adminImage = require("../models/adminadminImage");
-// we will be sending name id and all the detaisl from the frontend for backend to send find() request to database to retrieve the image and then perform the verification process
+const Jimp = require("jimp");
+const pixelmatch = require("pixelmatch");
+const adminImage = require("../models/adminImage");
 
 const compareImagesMiddleware = async (req, res, next) => {
   try {
@@ -18,30 +16,46 @@ const compareImagesMiddleware = async (req, res, next) => {
 
     // Convert both images to grayscale and resize to the same dimensions
     const resizeOptions = { width: 256, height: 256 };
-    const processedUploadedImg = await sharp(uploadedImageBuffer)
-      .resize(resizeOptions)
-      .grayscale()
-      .toBuffer();
 
-    const processedDbImg = await sharp(dbImage.imageBuffer)
-      .resize(resizeOptions)
-      .grayscale()
-      .toBuffer();
+    const [uploadedImg, dbImg] = await Promise.all([
+      Jimp.read(uploadedImageBuffer),
+      Jimp.read(dbImage.imageBuffer),
+    ]);
 
-    // Use Resemble.js to compare the images
-    resemble(processedUploadedImg)
-      .compareTo(processedDbImg)
-      .onComplete((data) => {
-        req.imageComparisonResult = data;
-        next();
-      });
+    uploadedImg.resize(resizeOptions.width, resizeOptions.height).greyscale();
+    dbImg.resize(resizeOptions.width, resizeOptions.height).greyscale();
+
+    // Convert images to raw pixel data
+    const uploadedImgData = uploadedImg.bitmap.data;
+    const dbImgData = dbImg.bitmap.data;
+
+    // Compare the images using pixelmatch
+    const { width, height } = uploadedImg.bitmap;
+    const diff = new Uint8Array(width * height * 4);
+    const numDiffPixels = pixelmatch(
+      uploadedImgData,
+      dbImgData,
+      diff,
+      width,
+      height,
+      { threshold: 0.1 }
+    );
+
+    req.imageComparisonResult = {
+      isSameDimensions:
+        width === dbImg.bitmap.width && height === dbImg.bitmap.height,
+      rawMisMatchPercentage: numDiffPixels,
+      diffImage: Jimp.create(width, height)
+        .then((diffImage) => {
+          return diffImage.bitmap.data.set(diff);
+        })
+        .then((diffImage) => diffImage.getBufferAsync(Jimp.MIME_PNG)),
+    };
+
+    next();
   } catch (error) {
     next(error);
   }
 };
 
 module.exports = compareImagesMiddleware;
-
-// we are getting the percentage comparison of the two images in req.imageComparisonResult
-// in the controller we need to check if the %age is > or < than 5 to decide whether the images are same or not
-// if not same send res as not same else save the image in editorImageModel and also push the image id to the adminImageModel as well and send the image back to display it on the frontend-- case could be that image is already at the frontend so we might not need to do that we could simply take from the frontend and display in the case of success else displya an error message that images are different and please verify them before uploading

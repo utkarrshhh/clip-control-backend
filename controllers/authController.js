@@ -116,6 +116,7 @@ exports.adminLogin = async (req, res) => {
         token: token,
         role: "admin",
         user,
+        id: user._id,
       });
     } else {
       return res.json({ msg: "Wrong password", success: false });
@@ -293,7 +294,12 @@ exports.getImages = async (req, res) => {
       finalResult = JSON.parse(nodeCache.get("finalResult"));
     } else {
       const images = await adminImageModel.find();
-      const editorImages = await editorImageModel.find();
+      const editorImages = await editorImageModel.find({
+        $or: [
+          { visible: { $exists: false } }, // Fetch documents where `visible` does not exist
+          { visible: true }, // Fetch documents where `visible` exists and is true
+        ],
+      });
       console.log(images.length + " " + editorImages.length);
 
       finalResult = [...images, ...editorImages];
@@ -309,43 +315,57 @@ exports.getImages = async (req, res) => {
 };
 
 exports.uploadEdited = async (req, res) => {
-  if (req.imageComparisonResult > 10) {
-    res.json({
-      message: "Please verify and upload image again",
-      success: false,
-    });
-  } else {
-    const { title, description, role, imageId } = req.body;
-    const visible = false;
-    try {
-      const {
-        buffer: fileBuffer,
-        originalname: originalName,
-        mimetype: mimeType,
-        size: fileSize,
-      } = req.file;
-      console.log(
-        `Received file: ${originalName}, type: ${mimeType}, size: ${fileSize}`
-      );
+  const { title, description, role, imageId, tags, userId, category } =
+    req.body;
+  const visible = false;
 
-      const base64Image = fileBuffer.toString("base64");
-      const user = new editorImageModel({
-        title,
-        description,
-        role,
-        image: base64Image,
-        visible,
-        adminImageId: imageId,
-      });
-      await user.save();
-      await adminImageModel.findOneAndUpdate(
-        {
-          $push: { editedImage: user._id },
-        },
-        { new: true } // Optional: returns the updated document
-      );
-    } catch (e) {
-      res.json({ message: "Internal Server Error", success: false });
-    }
+  try {
+    const {
+      buffer: fileBuffer,
+      originalname: originalName,
+      mimetype: mimeType,
+      size: fileSize,
+    } = req.file;
+
+    console.log(
+      `Received file: ${originalName}, type: ${mimeType}, size: ${fileSize}`
+    );
+
+    const base64Image = fileBuffer.toString("base64");
+    const image = new editorImageModel({
+      title,
+      description,
+      role,
+      tags,
+      category,
+      image: base64Image,
+      visible,
+      user: userId,
+      adminImageId: imageId,
+    });
+
+    await image.save();
+
+    // Correcting the $push operation
+    await adminImageModel.findOneAndUpdate(
+      { _id: imageId }, // Filter to find the document by its ID
+      {
+        $push: { editedImage: image._id }, // Push the new image ID into the editedImage array
+      },
+      { new: true } // Optional: returns the updated document
+    );
+
+    res.json({ message: "File uploaded successfully", success: true, image });
+
+    nodeCache.del("finalResult");
+
+    // Redirect after successful upload
+    res.redirect(`/image/${imageId}`);
+  } catch (e) {
+    res.status(500).json({
+      message: "Internal Server Error",
+      success: false,
+      error: e.message,
+    });
   }
 };

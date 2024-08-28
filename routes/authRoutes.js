@@ -9,7 +9,9 @@ const {
   getImages,
   uploadEdited,
 } = require("../controllers/authController");
-const { verifyToken, imageVerify } = require("../middlewares/VerifyToken");
+const { verifyToken } = require("../middlewares/VerifyToken");
+// const { imageVerify } = require("../middlewares/ImageVerify");
+// const { compareImagesMiddleware } = require("../middlewares/ImageVerify");
 const multer = require("multer");
 
 // Set up memory storage
@@ -27,6 +29,6 @@ router.post("/editorLogin", editorLogin);
 router.get("/confirm/:token", confirmEmail);
 router.post("/upload", verifyToken, upload.single("image"), uploadMedia);
 router.get("/explore", getImages);
-router.post("/uploadEdited", verifyToken, imageVerify, uploadEdited);
+router.post("/uploadEdited", upload.single("image"), uploadEdited);
 
 module.exports = router;
