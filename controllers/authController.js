@@ -138,9 +138,6 @@ exports.editorLogin = async (req, res) => {
     console.log(user);
     res.json({ msg: "user not found", success: false });
   } else {
-    // const isMatch = await bcrypt.compare(user.password, password);
-    // const isMatch = user.password === password;
-
     const isMatch = await bcrypt.compare(password, user.password);
     let token = "";
     if (isMatch) {
@@ -157,7 +154,8 @@ exports.editorLogin = async (req, res) => {
         success: true,
         token,
         role: "editor",
-        user,
+        user: user,
+        id: user._id,
       });
     } else {
       res.json({ msg: "wrong password", success: false });
@@ -318,7 +316,7 @@ exports.uploadEdited = async (req, res) => {
   const { title, description, role, imageId, tags, userId, category } =
     req.body;
   const visible = false;
-
+  console.log("visible set false");
   try {
     const {
       buffer: fileBuffer,
@@ -332,6 +330,7 @@ exports.uploadEdited = async (req, res) => {
     );
 
     const base64Image = fileBuffer.toString("base64");
+    console.log("here");
     const image = new editorImageModel({
       title,
       description,
@@ -343,9 +342,9 @@ exports.uploadEdited = async (req, res) => {
       user: userId,
       adminImageId: imageId,
     });
-
+    console.log("before image save");
     await image.save();
-
+    console.log("after image save");
     // Correcting the $push operation
     await adminImageModel.findOneAndUpdate(
       { _id: imageId }, // Filter to find the document by its ID
@@ -360,7 +359,7 @@ exports.uploadEdited = async (req, res) => {
     nodeCache.del("finalResult");
 
     // Redirect after successful upload
-    res.redirect(`/image/${imageId}`);
+    // res.redirect(`/image/${imageId}`);
   } catch (e) {
     res.status(500).json({
       message: "Internal Server Error",
