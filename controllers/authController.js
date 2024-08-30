@@ -353,6 +353,13 @@ exports.uploadEdited = async (req, res) => {
       },
       { new: true } // Optional: returns the updated document
     );
+    await editorModel.findOneAndUpdate(
+      { _id: userId },
+      {
+        $push: { imageUpload: image._id },
+      },
+      { new: true } // Optional: returns the updated document
+    );
 
     res.json({ message: "File uploaded successfully", success: true, image });
 
