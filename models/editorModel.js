@@ -6,7 +6,6 @@ const editorShema = new mongoose.Schema({
   email: { type: String, required: true },
   admin: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", required: true },
   verified: { type: Boolean, default: false },
-
   imageUpload: [{ type: mongoose.Schema.Types.ObjectId, ref: "Image" }],
 });
 

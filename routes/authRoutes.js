@@ -8,6 +8,7 @@ const {
   uploadMedia,
   getImages,
   uploadEdited,
+  getUploaded,
 } = require("../controllers/authController");
 const { verifyToken } = require("../middlewares/VerifyToken");
 // const { imageVerify } = require("../middlewares/ImageVerify");
@@ -30,5 +31,6 @@ router.get("/confirm/:token", confirmEmail);
 router.post("/upload", verifyToken, upload.single("image"), uploadMedia);
 router.get("/explore", getImages);
 router.post("/uploadEdited", upload.single("image"), uploadEdited);
+router.post("/UploadedEdited", getUploaded);
 
 module.exports = router;
