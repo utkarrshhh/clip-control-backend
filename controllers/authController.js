@@ -375,3 +375,48 @@ exports.uploadEdited = async (req, res) => {
     });
   }
 };
+
+exports.getUploaded = async (req, res) => {
+  try {
+    const { editedImageId, userId } = req.body;
+    console.log(editedImageId);
+
+    // Validate the presence of required fields
+    if (!editedImageId || !userId) {
+      return res.status(400).json({
+        message: "Missing editedImageId or userId in request body",
+        success: false,
+      });
+    }
+
+    // Find the edited image by its ID
+    const editedImage = await editorImageModel.findOne({ _id: editedImageId });
+    if (!editedImage) {
+      return res
+        .status(404)
+        .json({ message: "Wrong image ID", success: false });
+    }
+
+    // Check if the user ID matches the one associated with the edited image
+    const userIdFromImage = editedImage.user.toString();
+    console.log(userIdFromImage);
+
+    if (userIdFromImage === userId) {
+      return res.json({
+        message: "this user has uploaded an edited image",
+        success: true,
+      });
+    } else {
+      return res.status(403).json({
+        message: "This user does not have an edited image related to this ID",
+        success: false,
+      });
+    }
+  } catch (e) {
+    console.error(e); // Log the error for debugging
+    return res.status(500).json({
+      message: "Internal Server Error",
+      success: false,
+    });
+  }
+};
