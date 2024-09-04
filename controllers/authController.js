@@ -196,7 +196,7 @@ exports.confirmEmail = async (req, res) => {
 };
 
 exports.uploadMedia = async (req, res) => {
-  const { title, tags, category, description, role } = req.body;
+  const { title, tags, category, description, role, uploaderName } = req.body;
   let userRef = req.user;
   try {
     if (!req.file) {
@@ -233,6 +233,7 @@ exports.uploadMedia = async (req, res) => {
           category,
           image: base64Image,
           user: userRef2._id,
+          uploaderName,
         });
         await newImage.save();
 
@@ -258,6 +259,7 @@ exports.uploadMedia = async (req, res) => {
           category,
           image: base64Image,
           user: userRef2._id,
+          uploaderName,
         });
         await newImage.save();
         await editorModel.findOneAndUpdate(
@@ -313,8 +315,16 @@ exports.getImages = async (req, res) => {
 };
 
 exports.uploadEdited = async (req, res) => {
-  const { title, description, role, imageId, tags, userId, category } =
-    req.body;
+  const {
+    title,
+    description,
+    role,
+    imageId,
+    tags,
+    userId,
+    category,
+    uploaderName,
+  } = req.body;
   const visible = false;
   console.log("visible set false");
   try {
@@ -341,6 +351,7 @@ exports.uploadEdited = async (req, res) => {
       visible,
       user: userId,
       adminImageId: imageId,
+      uploaderName,
     });
     console.log("before image save");
     await image.save();

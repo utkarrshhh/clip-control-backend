@@ -9,6 +9,7 @@ const imageSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   user: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
   editedImage: [{ type: mongoose.Schema.Types.ObjectId, ref: "editorImage" }],
+  uploaderName: { type: String, required: true },
 });
 
 module.exports = mongoose.model("Image", imageSchema);
