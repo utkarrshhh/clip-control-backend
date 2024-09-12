@@ -431,3 +431,99 @@ exports.getUploaded = async (req, res) => {
     });
   }
 };
+
+// exports.deleteImage = async (req, res) => {
+//   try {
+//     const { imageId, userId, role } = req.body;
+//     if (role == "editor") {
+//       let user = await editorModel.findById(userId);
+//       if (user) {
+//         const updateEditor = await editorModel.findByIdAndUpdate(
+//           userId,
+//           {
+//             $pull: { imageUpload: imageId },
+//           },
+//           { $new: true }
+//         );
+//         await updateEditor.save();
+//         console.log(
+//           "Image deleted successfully from editor",
+//           updateEditor.imageUpload
+//         );
+//       } else {
+//         res
+//           .status(403)
+//           .json({ message: "User does not exist", success: false });
+//       }
+//       const image = await editorImageModel.findOneAndDelete({ _id: imageId });
+//       if (image) {
+//         console.log("successFully deleted Image from image model");
+//         res
+//           .status(200)
+//           .json({ message: "Successfully deleted", success: true });
+//       } else {
+//         res.status(404).json({ message: "Image not found", success: false });
+//       }
+//     }
+//   } catch (e) {
+//     console.error(e); // Log the error for debugging
+//     return res.status(500).json({
+//       message: "Internal Server Error",
+//       success: false,
+//     });
+//   }
+// };
+
+exports.deleteImage = async (req, res) => {
+  nodeCache.del("finalResult");
+  const { imageId, userId, role } = req.body;
+  console.log(imageId, userId, role);
+  console.log("here2=1");
+  try {
+    if (role == "editor") {
+      console.log("inside here");
+      let user = await editorModel.findById(userId);
+      console.log("here2");
+      if (!user) {
+        return res
+          .status(404)
+          .json({ message: "User does not exist", success: false });
+      }
+      console.log("here3");
+      const updateEditor = await editorModel.findByIdAndUpdate(
+        userId,
+        { $pull: { imageUpload: imageId } },
+        { new: true }
+      );
+      console.log("here4");
+      if (updateEditor) {
+        console.log(
+          "Image deleted from editor successfully",
+          updateEditor.imageUpload
+        );
+      } else {
+        return res
+          .status(404)
+          .json({ message: "Failed to update editor", success: false });
+      }
+      console.log("here5");
+      const image = await editorImageModel.findOneAndDelete({ _id: imageId });
+      if (image) {
+        console.log("Successfully deleted image from image model");
+        return res
+          .status(200)
+          .json({ message: "Successfully deleted", success: true });
+      } else {
+        return res
+          .status(404)
+          .json({ message: "Image not found", success: false });
+      }
+    }
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({
+      message: "Internal Server Error",
+      success: false,
+    });
+  }
+};
