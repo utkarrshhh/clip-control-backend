@@ -9,7 +9,6 @@ const { sendVerificationEmail } = require("./nodeMailer");
 const adminImageModel = require("../models/adminImageModel");
 const editorModel = require("../models/editorModel");
 const editorImageModel = require("../models/editorImageModel");
-
 const nodeCache = new NodeCache();
 
 exports.adminSignup = async (req, res) => {
@@ -244,6 +243,7 @@ exports.uploadMedia = async (req, res) => {
           },
           { new: true } // Optional: returns the updated document
         );
+        userRef2 = await editorModel.findOne({ email: userRef.email });
       } else {
         userRef2 = await editorModel.findOne({ email: userRef.email });
         if (!userRef2) {
@@ -269,10 +269,16 @@ exports.uploadMedia = async (req, res) => {
           },
           { new: true } // Optional: returns the updated document
         );
+        userRef2 = await editorModel.findOne({ email: userRef.email });
       }
-      console.log(userRef);
+      console.log(userRef2);
       nodeCache.del("finalResult");
-      res.json({ message: "File uploaded successfully.", success: true });
+
+      res.json({
+        message: "File uploaded successfully.",
+        success: true,
+        user: userRef2,
+      });
     } catch (e) {
       console.log(e);
       return res.status(500).json({
@@ -432,48 +438,6 @@ exports.getUploaded = async (req, res) => {
   }
 };
 
-// exports.deleteImage = async (req, res) => {
-//   try {
-//     const { imageId, userId, role } = req.body;
-//     if (role == "editor") {
-//       let user = await editorModel.findById(userId);
-//       if (user) {
-//         const updateEditor = await editorModel.findByIdAndUpdate(
-//           userId,
-//           {
-//             $pull: { imageUpload: imageId },
-//           },
-//           { $new: true }
-//         );
-//         await updateEditor.save();
-//         console.log(
-//           "Image deleted successfully from editor",
-//           updateEditor.imageUpload
-//         );
-//       } else {
-//         res
-//           .status(403)
-//           .json({ message: "User does not exist", success: false });
-//       }
-//       const image = await editorImageModel.findOneAndDelete({ _id: imageId });
-//       if (image) {
-//         console.log("successFully deleted Image from image model");
-//         res
-//           .status(200)
-//           .json({ message: "Successfully deleted", success: true });
-//       } else {
-//         res.status(404).json({ message: "Image not found", success: false });
-//       }
-//     }
-//   } catch (e) {
-//     console.error(e); // Log the error for debugging
-//     return res.status(500).json({
-//       message: "Internal Server Error",
-//       success: false,
-//     });
-//   }
-// };
-
 exports.deleteImage = async (req, res) => {
   nodeCache.del("finalResult");
   const { imageId, userId, role } = req.body;
@@ -482,6 +446,7 @@ exports.deleteImage = async (req, res) => {
   try {
     if (role == "editor") {
       console.log("inside here");
+      console.log(userId);
       let user = await editorModel.findById(userId);
       console.log("here2");
       if (!user) {
@@ -501,6 +466,8 @@ exports.deleteImage = async (req, res) => {
           "Image deleted from editor successfully",
           updateEditor.imageUpload
         );
+
+        nodeCache.del("finalResult");
       } else {
         return res
           .status(404)
@@ -510,6 +477,37 @@ exports.deleteImage = async (req, res) => {
       const image = await editorImageModel.findOneAndDelete({ _id: imageId });
       if (image) {
         console.log("Successfully deleted image from image model");
+        return res
+          .status(200)
+          .json({ message: "Successfully deleted", success: true });
+      } else {
+        return res
+          .status(404)
+          .json({ message: "Image not found", success: false });
+      }
+    }
+    if (role === "admin") {
+      let updateAdmin = await adminModel.findByIdAndUpdate(
+        userId,
+        {
+          $pull: { imageUpload: imageId },
+        },
+        { new: true }
+      );
+      if (updateAdmin) {
+        console.log(
+          "Image deleted from editor successfully",
+          updateAdmin.imageUpload
+        );
+        nodeCache.del("finalResult");
+      } else {
+        return res
+          .status(404)
+          .json({ message: "Failed to update admin", success: false });
+      }
+      const image = await adminImageModel.findOneAndDelete({ _id: imageId });
+      if (image) {
+        console.log("Successfully deleted image from admin image model");
         return res
           .status(200)
           .json({ message: "Successfully deleted", success: true });
