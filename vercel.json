@@ -1,6 +1,5 @@
 {
     "installCommand":"npm install --legacy-peer-deps",
-    "versions":2,
     "builds":[
         {
             "src":"server.js",
